@@ -1,7 +1,5 @@
-#!/usr/bin/python3
+from abc import ABC, abstractmethod
 import subprocess
-import json
-import base64
 
 def php(*args):
     args = ['php'] + list(args)
@@ -10,10 +8,28 @@ def php(*args):
     if err: raise PhpException(err)
     return p.stdout.read()
 
-def libfunc(func, **kwargs):
-    params_encode = base64.b64encode(json.dumps(kwargs).encode('utf-8'))
-    ret = php('direct.php', func, params_encode)
-    return json.loads(base64.b64decode(ret))
+class PhpFunc(ABC):
+    name = None
+    __source = None
+
+    @property
+    def source(self):
+        return self.__source
+
+    @source.setter
+    def source(self, filepath):
+        self.__source = 'lib/' + filepath
+
+    def __init__(self):
+        self.config()
+
+    @abstractmethod
+    def config(self):
+        pass
+
+    @abstractmethod
+    def run(self):
+        pass
 
 class PhpException(Exception):
 
@@ -23,9 +39,3 @@ class PhpException(Exception):
 
     def getMessage(self):
         return self.msg
-
-def main():
-    print(libfunc('ssrf_soap_client', target='127.0.0.1', headers=['Cookies: key=value'], data='a=b&c=d'))
-
-if __name__ == '__main__':
-    main()
